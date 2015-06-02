@@ -3,7 +3,7 @@
 
 from ijson import items
 
-path = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/wiki/20150309.json'
+path = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/20150309.json'
 
 def printLines(path, m=10):
 	'''print first m lines from the big file'''
@@ -20,14 +20,13 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 	'''stream big json from wikipedia dump json'''
 	f = open(path,'r')
 	objects = items(f, 'item')
-	print 'done getting objects'
 	its = (o for o in objects if o['type'] == 'item')
-	# its = objects
-	print 'done getting its'
+	
 	count = 0
-
+	dfArray = []
 	for i in its:
-		for statement in i['claims'].values():
+
+		for statement in i.get('claims',[]).values():
 			for x in statement:
 				if 'datatype' in x['mainsnak']:
 					if x['mainsnak']['datatype']== 'globe-coordinate':
@@ -58,8 +57,8 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 						# coordTriad
 						# lon, lat, precision
 						coordPair = (lat,lon)
-						# print type(x['mainsnak']['datavalue']['value']['latitude'])
 						cPrecision = x['mainsnak']['datavalue']['value']['precision']
+						
 						# name
 						if 'ru' in i['labels']:
 							name = i['labels']['ru']['value']
@@ -68,12 +67,18 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 						else:
 							name = 'unknown'
 						
-						print name, link, coordPair, cPrecision
+						print name
+						dfArray.append({'name':name,'link':link, 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages, 'lnum':lnum})
 						# save it
-				
+		
 		count+=1
-		if count>=m:
+		if m!=-1 and count>=m:
 			break
+	return dfArray
+
+			
+
+		
 	    
 def inSquare(pair, geosquare=((-180,-180),(180,180)), inside=True ):
 	'''returns if point in the geosquare'''
@@ -87,6 +92,18 @@ Moscow = ((55.289547, 36.635486),(56.239792, 38.882190))
 test = ((45.567273, 21.430408),(59.433441, 46.215564))
 print 'started!'
 # printLines(path)
-streamBigJson(path, m=1000, geosquare=Moscow)
+dfArray = streamBigJson(path, m=-1, geosquare=Moscow)
 # print inSquare((190,0), ((-180,-180),(180,180)))
+
+# SAVING
+writeFile = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result.csv'
+headersList=dfArray[0].keys()
+
+with open(filepath,'wb') as writeFile:
+	wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
+	wD.writeheader()
+
+	for row in dfArray:
+		wD.writerow(row)
+
 print 'done here!'
