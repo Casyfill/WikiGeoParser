@@ -17,7 +17,9 @@ def printLines(path, m=10):
 	    	count+=1
 
 def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
-	'''stream big json from wikipedia dump json'''
+	'''stream big json from wikipedia dump json.
+	"m" param is the max items to proceed. If m=-1, limit is overrided'''
+
 	f = open(path,'r')
 	objects = items(f, 'item')
 	its = (o for o in objects if o['type'] == 'item')
@@ -26,7 +28,7 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 	dfArray = []
 	for i in its:
 
-		for statement in i.get('claims',[]).values():
+		for statement in i.get('claims',{}).values():
 			for x in statement:
 				if 'datatype' in x['mainsnak']:
 					if x['mainsnak']['datatype']== 'globe-coordinate':
@@ -68,7 +70,7 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 							name = 'unknown'
 						
 						print name
-						dfArray.append({'name':name,'link':link, 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages, 'lnum':lnum})
+						dfArray.append({'id':ID,'name':name,'link':link, 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages, 'lnum':lnum})
 						# save it
 		
 		count+=1
