@@ -16,15 +16,23 @@ def printLines(path, m=10):
 	    	print line
 	    	count+=1
 
-def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
-	'''stream big json from wikipedia dump json.
+def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180)), writePath='result.csv'):
+	'''stream big json from wikipedia dump json and save it to file.
 	"m" param is the max items to proceed. If m=-1, limit is overrided'''
+	import csv
 
 	f = open(path,'r')
 	objects = items(f, 'item')
 	its = (o for o in objects if o['type'] == 'item')
 	
+	with open(writePath,'r') as rFile:
+		alreadyWritten = max(len(list(rFile))-1,0)
+	print 'already written: ', alreadyWritten
+
+	headersList = ['id','name','link', 'lat','lon','precision', 'languages', 'lnum']
+	
 	count = 0
+	rCount = 0
 	dfArray = []
 	for i in its:
 
@@ -38,16 +46,27 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 						if inSquare( (lat,lon), geosquare, inside=False):
 							break
 
+						# skip already written ones
+						rCount+=1
+						if rCount <= alreadyWritten:
+							break
+
+
 						# parse id, link, coord, name
 						# ID
 						ID = i['id']
 						# link
 						# for link in i['sitelinks']: print link, i['sitelinks'][link]['title']
-						for t in ['ruwiki','enwiki','enwikiquote']:
-							if t in i['sitelinks']: 	
-								link = t + '/' + i['sitelinks'][t]['title']
+						link = '?'
+						linkDict = {'ruwiki':'http://ru.wikipedia.org/wiki/','enwiki':'http://en.wikipedia.org/wiki/'}
+						for t in linkDict:
+							if t in i.get('sitelinks',{}): 	
+								link = linkDict[t]  + i['sitelinks'][t]['title']
 								# print link
 								break
+						if link == '?':
+							t = i['sitelinks'].keys()[0]
+							link = t + '/' + i['sitelinks'][t]['title']
 						
 
 						
@@ -63,22 +82,46 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180))):
 						
 						# name
 						if 'ru' in i['labels']:
+							feature = 'ru'
 							name = i['labels']['ru']['value']
 						elif 'en' in i['labels']:
+							feature = 'en'
 							name = i['labels']['en']['value']
+						elif 'uk' in i['labels']:
+							feature = 'en'
+							name = i['labels']['uk']['value']
 						else:
-							name = 'unknown'
+							feature = i['labels'].keys()[0]
+							name = i['labels'][i['labels'].keys()[0]]['value']
 						
-						print name
-						dfArray.append({'id':ID,'name':name,'link':link, 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages, 'lnum':lnum})
+						Type = defineType(name) 
+
+						print count, rCount, name
+						resRow = {'id':ID,'name':name.encode('utf-8','ignore'),'link':link.encode('utf-8','ignore'), 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages.encode('utf-8','ignore'), 'lnum':lnum, 'feature':feature, 'type':Type}
+						
+						with open(writePath,'a') as writeFile:
+							wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
+							if alreadyWritten==0: 
+								wD.writeheader()
+								alreadyWritten=1
+
+							wD.writerow(resRow)
+						# for key in resRow: resRow[key]=unicode(resRow[key]).encode('utf-8','ignore')
+						
 						# save it
-		
+		# print count, rCount
 		count+=1
 		if m!=-1 and count>=m:
 			break
 	return dfArray
 
-			
+
+
+def defineType(text):
+	
+	ontology = {'topo':['улица','мост', 'переулок','площадь'],
+				'religion':['собор','церковь','часовня','храм','синагога','мечеть'],
+				'event':['террористический','убийство']}		
 
 		
 	    
@@ -93,19 +136,14 @@ def inSquare(pair, geosquare=((-180,-180),(180,180)), inside=True ):
 Moscow = ((55.289547, 36.635486),(56.239792, 38.882190))
 test = ((45.567273, 21.430408),(59.433441, 46.215564))
 print 'started!'
-# printLines(path)
-dfArray = streamBigJson(path, m=-1, geosquare=Moscow)
+
+writeFile = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result.csv'
+
+dfArray = streamBigJson(path, m=-1, geosquare=Moscow, writePath=writeFile)
 # print inSquare((190,0), ((-180,-180),(180,180)))
 
 # SAVING
-writeFile = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result.csv'
-headersList=dfArray[0].keys()
 
-with open(filepath,'wb') as writeFile:
-	wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
-	wD.writeheader()
 
-	for row in dfArray:
-		wD.writerow(row)
 
 print 'done here!'
