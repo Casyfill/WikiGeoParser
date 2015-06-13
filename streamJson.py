@@ -29,7 +29,7 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180)), writePath='resul
 		alreadyWritten = max(len(list(rFile))-1,0)
 	print 'already written: ', alreadyWritten
 
-	headersList = ['id','name','link', 'lat','lon','precision', 'languages', 'lnum']
+	headersList = ['id','name','link', 'lat','lon','precision', 'languages', 'lnum','feature', 'type']
 	
 	count = 0
 	rCount = 0
@@ -65,8 +65,11 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180)), writePath='resul
 								# print link
 								break
 						if link == '?':
-							t = i['sitelinks'].keys()[0]
-							link = t + '/' + i['sitelinks'][t]['title']
+							if 'sitelinks' in i.keys():
+								t = i['sitelinks'].keys()[0]
+								link = t + '/' + i['sitelinks'][t]['title']
+							else: 
+								link = '?'
 						
 
 						
@@ -94,10 +97,23 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180)), writePath='resul
 							feature = i['labels'].keys()[0]
 							name = i['labels'][i['labels'].keys()[0]]['value']
 						
-						Type = defineType(name) 
+						# print type(name)
+						# print name
+						# print type(name)==unicode 
+						if type(name)!=unicode: name = unicode(name)
+						# print type(name)==unicode
+						T = defineType(name) 
 
-						print count, rCount, name
-						resRow = {'id':ID,'name':name.encode('utf-8','ignore'),'link':link.encode('utf-8','ignore'), 'lat':coordPair[0],'lon':coordPair[1],'precision':cPrecision, 'languages':languages.encode('utf-8','ignore'), 'lnum':lnum, 'feature':feature, 'type':Type}
+
+						print count, rCount, name, T
+						resRow = {'id':ID,
+								  'name':name.encode('utf-8','ignore'),
+								  'link':link.encode('utf-8','ignore'), 
+								  'lat':coordPair[0],'lon':coordPair[1],
+								  'precision':cPrecision, 
+								  'languages':languages.encode('utf-8','ignore'), 
+								  'lnum':lnum, 'feature':feature.encode('utf-8','ignore'), 
+								  'type':T}
 						
 						with open(writePath,'a') as writeFile:
 							wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
@@ -113,15 +129,26 @@ def streamBigJson(path,m=50, geosquare=((-180,-180),(180,180)), writePath='resul
 		count+=1
 		if m!=-1 and count>=m:
 			break
-	return dfArray
+	# return dfArray
 
 
 
 def defineType(text):
-	
-	ontology = {'topo':['улица','мост', 'переулок','площадь'],
-				'religion':['собор','церковь','часовня','храм','синагога','мечеть'],
-				'event':['террористический','убийство']}		
+	text = text.lower()
+
+	ontology = {u'topo':[u'улица',u'мост',u'переулок',u'площадь',u'проезд',u'парк',u'сквер'],
+				u'adm':[u'район',u'область',u'деревня',u'хутор',u'посёлок'],
+				u'religion':[u'собор',u'церковь',u'часовня',u'монастырь',u'храм',u'синагога',u'мечеть'],
+				u'event':[u'террористический',u'убийство',u'взрыв',u'обрушение',u'акция',u'митинг'],
+				u'education':[u'университет',u'институт',u'школа',u'училище',u'академия'],
+				u'transport':[u'аэропорт',u'вокзал']
+				}
+
+	for key in ontology.keys():
+		for word in ontology[key]:
+			if word in text: return key		
+
+	return u'other'
 
 		
 	    
@@ -139,7 +166,8 @@ print 'started!'
 
 writeFile = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result.csv'
 
-dfArray = streamBigJson(path, m=-1, geosquare=Moscow, writePath=writeFile)
+# print defineType('террористический лалала'.decode('utf-8','ignore'))
+streamBigJson(path, m=-1, geosquare=Moscow, writePath=writeFile)
 # print inSquare((190,0), ((-180,-180),(180,180)))
 
 # SAVING
