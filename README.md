@@ -18,7 +18,7 @@ other modules used:
 2. Filter json with **streamJson.py**
 3. Parse stats with **stats_parser.py**
 
-For some reason, some of the articles were saved in dump severl times. 
+For some reason, some of the articles were saved in dump several times. 
 
 Also, please take in mind that streamJson works so stats are given for one page - russian if there is such, english if there is no russian but english exists, and any other (first in dict) if there is no englis neither russian page.
 
