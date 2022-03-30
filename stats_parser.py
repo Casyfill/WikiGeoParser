@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ## Philipp Kats (c) June 2015
-
 ''' 
 This script collects stats for specific wikipedia page
 Using http://stats.grok.se/
 '''
-
-path = '/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result.csv'
-rPath ='/Users/casy/Dropbox/My_Projects/Karmatskiy_City/WikiGeoParser/data/result_stats.csv'
-
 import requests, lxml.html, csv
+
+path = './data/result.csv'
+rPath ='./data/result_stats.csv'
 unique_keys = ('name', 'time')
 errorLines = []
 
@@ -44,27 +42,28 @@ def getStats(lang, name, time):
     # print name, 'ok'
     return {'link':link, 'lang':lang,'name':name, 'time':time, 'seen':seen, 'rank':rank}
     
-# getStats('en','Luzhniki_Small_Sports_Arena', '201506')
-rows = []
-with open(path,'rb') as readFile:
-
-    wD = csv.DictReader(readFile, fieldnames=None, restkey=None, restval=None, dialect='excel')
+if __name__ == '__main__':
+    # getStats('en','Luzhniki_Small_Sports_Arena', '201506')
+    rows = []
+    with open(path,'rb') as readFile:
+        wD = csv.DictReader(readFile, fieldnames=None, restkey=None, restval=None, dialect='excel')
     
-    for line in wD:
-        line.update(getStats(line['feature'], line['name'], '201506')) 
-        rows.append(line)
+        for line in wD:
+            line.update(getStats(line['feature'], line['name'], '201506')) 
+            rows.append(line)
 
-print 'parsed!'
+    print 'parsed!'
+    headersList=rows[0].keys()
 
-headersList=rows[0].keys()
+    with open(rPath,'wb') as writeFile:
+        wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
+        wD.writeheader()
 
-with open(rPath,'wb') as writeFile:
-    wD = csv.DictWriter(writeFile, headersList,restval='', extrasaction='raise', dialect='excel')
-    wD.writeheader()
+        for row in rows:
+            wD.writerow(row)
 
-    for row in rows:
-        wD.writerow(row)
-
-print 'saved!'
-for link in errorLines:
-    print link
+    print 'saved!'
+    if len(errorLines) > 0:
+        print('Got errors:', len(errorLines))
+        for link in errorLines:
+            print link
